@@ -1,6 +1,9 @@
 <template>
   <div id="app" class="md:container md:mx-auto">
-    <div v-if="Object.keys(mensaje).length==0" class="rounded bg-white shadow-lg p-4 mt-3">
+    <div
+      v-if="Object.keys(mensaje).length == 0"
+      class="rounded bg-white shadow-lg p-4 mt-3"
+    >
       <h2 class="text-xl">Calendario</h2>
       <hr class="my-2" />
       <div class="flex justify-center my-2">
@@ -122,7 +125,7 @@
     <div v-else class="rounded bg-white shadow-lg p-4 mt-3">
       <div class="rounded bg-green-200 max-w-md mx-auto p-4 my-3 text-center">
         <h2 class="text-xl">Confirmación de cita</h2>
-        <hr class="my-2">
+        <hr class="my-2" />
         <p>Id: {{ mensaje.id }}</p>
         <p>Fecha: {{ mensaje.date }}</p>
         <p>Hora: {{ mensaje.hour }}</p>
@@ -170,30 +173,38 @@ export default {
     final: "",
     disable: true,
     hoy: Date.now(),
-    mensaje: {}
+    mensaje: {},
   }),
 
   mounted() {
     if (localStorage.id) {
       this.getSchedule(localStorage.id);
     } else {
+      //trae datos con fecha inicial hoy
       this.fecha = this.formatoFecha(this.hoy);
       this.getDays(this.fecha);
     }
   },
 
   methods: {
+    // funcion asincrona para traer todos los datos
     async getDays(fecha) {
+      //inicio y obtengo variables día lunes de la semana
       var d = new Date(fecha);
       var day = d.getDay();
       d.setDate(d.getDate() - day + (day == 0 ? -6 : 1));
       this.days = [];
       const axiosDays = [];
+
+      //llamados API de los cinco días laborales
       for (let i = 0; i < 5; i++) {
         axiosDays[i] = axios.get("freeschedule?day=" + this.formatoFecha(d));
         d.setDate(d.getDate() + 1);
       }
+      // trae datos de forma concurrente
       const days = await axios.all(axiosDays);
+
+      // asino a variables
       for (let i = 0; i < days.length; i++) {
         this.days.push(days[i].data);
       }
@@ -201,7 +212,9 @@ export default {
       this.final = this.days[4].date;
     },
 
+    // flechas semana siguiente y anterior
     cambiaDias(type) {
+      // boolean aumenta o disminuye dias y trae datos
       var d = new Date(this.inicio);
       let dir = type ? 14 : -7;
       d.setDate(d.getDate() + dir);
@@ -209,18 +222,18 @@ export default {
       this.hora = "";
     },
 
+    // al hacer cambio de fecha
     cambiaFecha() {
       if (!this.fecha) return;
-      console.log("fecha: " + this.fecha);
+      // valida la fecha y si es de otra semana trae datos
       const estaSemana = this.days.find((dia) => dia.date === this.fecha);
       if (estaSemana == undefined) {
         this.getDays(this.fecha);
         this.hora = "";
-      } else {
-        this.validaFecha();
-      }
+      } else this.validaFecha();
     },
 
+    // fecha formato timestamp => string "YYYY-MM-DD"
     formatoFecha(val) {
       const _time = new Date(val);
       const _ano = _time.getFullYear();
@@ -237,21 +250,24 @@ export default {
       return this.days[dia].scheduled.includes(hora);
     },
 
+    // activa CSS y boton Agendar
     validaFecha() {
       const estaSemana = this.days.find((dia) => dia.date === this.fecha);
       if (estaSemana) this.disable = estaSemana.scheduled.includes(this.hora);
     },
 
+    // envia datos y almacena variable local
     async agendar() {
       const item = { date: this.fecha, hour: this.hora };
       const { data } = await axios.post("schedule", item);
       localStorage.id = data.id;
-      this.mensaje = data
+      this.mensaje = data;
     },
 
+    // busca agenda por ID si variable local
     async getSchedule(id) {
       const { data } = await axios.get("schedule/" + id);
-      this.mensaje = data
+      this.mensaje = data;
     },
   },
 };
