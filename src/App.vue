@@ -6,6 +6,7 @@
     >
       <h2 class="text-xl">Calendario</h2>
       <hr class="my-2" />
+
       <div class="flex justify-center my-2">
         <button
           @click="cambiaDias(false)"
@@ -44,7 +45,19 @@
           </svg>
         </button>
       </div>
-      <table class="table rounded border w-full">
+
+      <div v-if="loading" class="loading-bar-container w-full">
+        <div class="loading-bar bg-blue-600"></div>
+      </div>
+
+      <table
+        class="table rounded border mt-3 w-full"
+        :class="[
+          loading
+            ? 'opacity-40 duration-100 ease-out'
+            : 'opacity-100 duration-200 ease-in',
+        ]"
+      >
         <thead>
           <tr>
             <th class="border p-2">Hora</th>
@@ -90,6 +103,7 @@
           </tr>
         </tbody>
       </table>
+
       <div class="flex mt-2">
         <label for="fecha" class="p-2">Seleccionado:</label>
         <input
@@ -120,6 +134,15 @@
         >
           Agendar
         </button>
+        <span
+          :class="[
+            disable && hora != ''
+              ? 'ml-0 px-5 bg-red-200 opacity-100 duration-200 ease-out'
+              : 'ml-6 bg-red-100 opacity-0 duration-200 ease-in',
+          ]"
+          class="rounded py-1 text-red-800 ml-4 my-1"
+          >Ocupado :(</span
+        >
       </div>
     </div>
     <div v-else class="rounded bg-white shadow-lg p-4 mt-3">
@@ -135,8 +158,29 @@
 </template>
 
 <style>
-.body {
-  background: blue;
+.loading-bar-container {
+  height: 2px;
+  background-color: #cfe0f0;
+  position: relative;
+  overflow: hidden;
+}
+.loading-bar {
+  height: 2px;
+  width: 50%;
+  position: absolute;
+  left: -50%;
+  animation: loading 1s ease-in-out 0.7s infinite;
+}
+@keyframes loading {
+  0% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(150%);
+  }
+  to {
+    transform: translateX(400%);
+  }
 }
 </style>
 
@@ -174,6 +218,7 @@ export default {
     disable: true,
     hoy: Date.now(),
     mensaje: {},
+    loading: false,
   }),
 
   mounted() {
@@ -184,6 +229,27 @@ export default {
       this.fecha = this.formatoFecha(this.hoy);
       this.getDays(this.fecha);
     }
+
+    axios.interceptors.request.use(
+      (c) => {
+        this.loading = true;
+        return c;
+      },
+      (err) => {
+        this.loading = false;
+        return Promise.reject(err);
+      }
+    );
+    axios.interceptors.response.use(
+      (r) => {
+        this.loading = false;
+        return r;
+      },
+      (err) => {
+        this.loading = true;
+        return Promise.reject(err);
+      }
+    );
   },
 
   methods: {
@@ -272,6 +338,3 @@ export default {
   },
 };
 </script>
-
-<style>
-</style>
